@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NephroGuard Pro - CKD Analytics Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body data-theme="dark">
+    <!-- Authentication Check -->
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div class="dashboard-container">
+        <!-- Left Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-kidneys"></i>
+                    <span>NephroGuard Pro</span>
+                </div>
+            </div>
+            <ul class="sidebar-nav">
+                <li class="nav-item active">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-hospital"></i>
+                        <span>Hospital Locator</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-user-injured"></i>
+                        <span>Patient Records</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-trending-up"></i>
+                        <span>Trends</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="user-name">Dr. Sarah Chen</span>
+                        <span class="user-role">Nephrologist</span>
+                    </div>
+                </div>
+                <button class="btn-logout" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>CKD Analytics Dashboard</h1>
+                    <p>Advanced AI-Powered Kidney Disease Detection</p>
+                </div>
+                <div class="header-actions">
+                    <button class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button class="header-btn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="header-btn" title="Calendar">
+                        <i class="fas fa-clock"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Location Status Bar -->
+            <div class="location-status-bar glass-panel">
+                <div class="location-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div class="location-details">
+                        <span class="location-label">Your Location</span>
+                        <span class="location-value" id="current-location">Detecting...</span>
+                    </div>
+                </div>
+                <button class="btn-location-refresh" id="refresh-location">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh Location
+                </button>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Center Panel - Data Entry -->
+                <div class="data-entry-panel glass-panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-notes-medical"></i> Clinical Data Entry</h2>
+                        <span class="panel-badge">24 Parameters</span>
+                    </div>
+                    
+                    <form id="clinical-form" class="clinical-form">
+                        <div class="form-grid">
+                            <!-- Column 1 -->
+                            <div class="form-column">
+                                <h3>Demographics</h3>
+                                <div class="form-group">
+                                    <label>Age</label>
+                                    <input type="number" name="age" placeholder="45" min="1" max="120">
+                                </div>
+                                <div class="form-group">
+                                    <label>Gender</label>
+                                    <select name="gender">
+                                        <option value="">Select</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Weight (kg)</label>
+                                    <input type="number" name="weight" placeholder="70" min="20" max="200">
+                                </div>
+                                <div class="form-group">
+                                    <label>Height (cm)</label>
+                                    <input type="number" name="height" placeholder="170" min="100" max="250">
+                                </div>
+                                <div class="form-group">
+                                    <label>BMI</label>
+                                    <input type="number" name="bmi" placeholder="24.2" step="0.1" min="10" max="50">
+                                </div>
+                                <div class="form-group">
+                                    <label>Blood Pressure (Systolic)</label>
+                                    <input type="number" name="bp_systolic" placeholder="120" min="60" max="250">
+                                </div>
+                                <div class="form-group">
+                                    <label>Blood Pressure (Diastolic)</label>
+                                    <input type="number" name="bp_diastolic" placeholder="80" min="40" max="150">
+                                </div>
+                                <div class="form-group">
+                                    <label>Diabetes Duration (years)</label>
+                                    <input type="number" name="diabetes_duration" placeholder="0" min="0">
+                                </div>
+                            </div>
+
+                            <!-- Column 2 -->
+                            <div class="form-column">
+                                <h3>Lab Results</h3>
+                                <div class="form-group">
+                                    <label>Serum Creatinine (mg/dL)</label>
+                                    <input type="number" name="creatinine" placeholder="1.2" step="0.01" min="0.1" max="10">
+                                </div>
+                                <div class="form-group">
+                                    <label>BUN (mg/dL)</label>
+                                    <input type="number" name="bun" placeholder="18" step="0.1" min="5" max="100">
+                                </div>
+                                <div class="form-group">
+                                    <label>eGFR (mL/min/1.73m²)</label>
+                                    <input type="number" name="egfr" placeholder="60" min="1" max="150">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hemoglobin (g/dL)</label>
+                                    <input type="number" name="hemoglobin" placeholder="13.5" step="0.1" min="5" max="20">
+                                </div>
+                                <div class="form-group">
+                                    <label>Albumin (g/dL)</label>
+                                    <input type="number" name="albumin" placeholder="4.0" step="0.1" min="1" max="6">
+                                </div>
+                                <div class="form-group">
+                                    <label>Calcium (mg/dL)</label>
+                                    <input type="number" name="calcium" placeholder="9.5" step="0.1" min="5" max="15">
+                                </div>
+                                <div class="form-group">
+                                    <label>Phosphorus (mg/dL)</label>
+                                    <input type="number" name="phosphorus" placeholder="3.5" step="0.1" min="1" max="8">
+                                </div>
+                            </div>
+
+                            <!-- Column 3 -->
+                            <div class="form-column">
+                                <h3>Additional Metrics</h3>
+                                <div class="form-group">
+                                    <label>Urine Albumin (mg/g)</label>
+                                    <input type="number" name="urine_albumin" placeholder="30" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Glucose Fasting (mg/dL)</label>
+                                    <input type="number" name="glucose_fasting" placeholder="95" min="50" max="400">
+                                </div>
+                                <div class="form-group">
+                                    <label>HbA1c (%)</label>
+                                    <input type="number" name="hba1c" placeholder="6.5" step="0.1" min="3" max="15">
+                                </div>
+                                <div class="form-group">
+                                    <label>Cholesterol Total (mg/dL)</label>
+                                    <input type="number" name="cholesterol" placeholder="200" min="100" max="400">
+                                </div>
+                                <div class="form-group">
+                                    <label>LDL Cholesterol (mg/dL)</label>
+                                    <input type="number" name="ldl" placeholder="130" min="50" max="300">
+                                </div>
+                                <div class="form-group">
+                                    <label>Triglycerides (mg/dL)</label>
+                                    <input type="number" name="triglycerides" placeholder="150" min="50" max="500">
+                                </div>
+                                <div class="form-group">
+                                    <label>Sodium (mEq/L)</label>
+                                    <input type="number" name="sodium" placeholder="140" min="120" max="160">
+                                </div>
+                                <div class="form-group">
+                                    <label>Potassium (mEq/L)</label>
+                                    <input type="number" name="potassium" placeholder="4.5" step="0.1" min="2" max="7">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary">
+                                <i class="fas fa-undo"></i> Reset Form
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="predict-btn">
+                                <i class="fas fa-brain"></i> Generate Clinical Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Panel - AI Analytics & Hospital Locator -->
+                <div class="analytics-panel glass-panel" id="analytics-panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-robot"></i> AI Analytics</h2>
+                        <span class="panel-badge">Live Analysis</span>
+                    </div>
+
+                    <!-- AI Confidence Gauge -->
+                    <div class="confidence-section">
+                        <h3>AI Confidence Score</h3>
+                        <div class="gauge-container">
+                            <div class="gauge">
+                                <div class="gauge-value" id="confidence-value">78%</div>
+                                <div class="gauge-progress" id="gauge-progress">
+                                    <div class="gauge-fill"></div>
+                                </div>
+                            </div>
+                            <div class="gauge-label">
+                                <span>Low Risk</span>
+                                <span>High Risk</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CKD Stage Badge -->
+                    <div class="stage-section">
+                        <h3>Predicted CKD Stage</h3>
+                        <div class="stage-badge" id="stage-badge">
+                            <span class="stage-text">Stage 3</span>
+                            <span class="stage-detail">(Moderate)</span>
+                            <div class="stage-glow"></div>
+                        </div>
+                        <div class="stage-info">
+                            <p>Moderately decreased kidney function with eGFR 30-59 mL/min/1.73m²</p>
+                        </div>
+                    </div>
+
+                    <!-- SHAP Values Chart -->
+                    <div class="shap-section">
+                        <h3>Key Influencing Factors</h3>
+                        <div class="shap-chart" id="shap-chart">
+                            <div class="shap-bar">
+                                <span class="bar-label">Creatinine</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill positive" style="width: 85%;"></div>
+                                </div>
+                                <span class="bar-value">+0.85</span>
+                            </div>
+                            <div class="shap-bar">
+                                <span class="bar-label">Age</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill positive" style="width: 65%;"></div>
+                                </div>
+                                <span class="bar-value">+0.65</span>
+                            </div>
+                            <div class="shap-bar">
+                                <span class="bar-label">BP Systolic</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill positive" style="width: 55%;"></div>
+                                </div>
+                                <span class="bar-value">+0.55</span>
+                            </div>
+                            <div class="shap-bar">
+                                <span class="bar-label">Hemoglobin</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill negative" style="width: 45%;"></div>
+                                </div>
+                                <span class="bar-value">-0.45</span>
+                            </div>
+                            <div class="shap-bar">
+                                <span class="bar-label">Diabetes</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill positive" style="width: 35%;"></div>
+                                </div>
+                                <span class="bar-value">+0.35</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Plan -->
+                    <div class="action-plan-section">
+                        <h3>Recommended Action Plan</h3>
+                        <ul class="action-list">
+                            <li class="action-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Schedule follow-up in 3 months</span>
+                            </li>
+                            <li class="action-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Monitor blood pressure weekly</span>
+                            </li>
+                            <li class="action-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Reduce dietary sodium intake</span>
+                            </li>
+                            <li class="action-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Maintain protein restriction if needed</span>
+                            </li>
+                            <li class="action-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Consider ACE inhibitor therapy</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Hospital Locator Section -->
+                    <div class="hospital-locator-section">
+                        <h3>Nearby Specialists</h3>
+                        <div class="hospital-list" id="hospital-list">
+                            <div class="hospital-card">
+                                <div class="hospital-info">
+                                    <h4><i class="fas fa-hospital"></i> City Medical Center</h4>
+                                    <p class="hospital-address">123 Healthcare Blvd, Suite 200</p>
+                                    <p class="hospital-distance"><i class="fas fa-route"></i> 2.3 km away</p>
+                                    <p class="hospital-rating"><i class="fas fa-star"></i> 4.8 (120 reviews)</p>
+                                </div>
+                                <div class="hospital-actions">
+                                    <button class="btn btn-navigate" data-lat="40.7128" data-lng="-74.0060" data-name="City Medical Center">
+                                        <i class="fas fa-directions"></i> Navigate
+                                    </button>
+                                    <button class="btn btn-call" data-phone="2125551234">
+                                        <i class="fas fa-phone"></i> Call
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="hospital-card">
+                                <div class="hospital-info">
+                                    <h4><i class="fas fa-hospital"></i> General Hospital</h4>
+                                    <p class="hospital-address">456 Medical Plaza, Floor 5</p>
+                                    <p class="hospital-distance"><i class="fas fa-route"></i> 3.7 km away</p>
+                                    <p class="hospital-rating"><i class="fas fa-star"></i> 4.6 (98 reviews)</p>
+                                </div>
+                                <div class="hospital-actions">
+                                    <button class="btn btn-navigate" data-lat="40.7589" data-lng="-73.9851" data-name="General Hospital">
+                                        <i class="fas fa-directions"></i> Navigate
+                                    </button>
+                                    <button class="btn btn-call" data-phone="2125555678">
+                                        <i class="fas fa-phone"></i> Call
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="hospital-card">
+                                <div class="hospital-info">
+                                    <h4><i class="fas fa-hospital"></i> Nephrology Clinic</h4>
+                                    <p class="hospital-address">789 Kidney Care Lane, Suite 10</p>
+                                    <p class="hospital-distance"><i class="fas fa-route"></i> 5.1 km away</p>
+                                    <p class="hospital-rating"><i class="fas fa-star"></i> 4.9 (85 reviews)</p>
+                                </div>
+                                <div class="hospital-actions">
+                                    <button class="btn btn-navigate" data-lat="40.7614" data-lng="-73.9776" data-name="Nephrology Clinic">
+                                        <i class="fas fa-directions"></i> Navigate
+                                    </button>
+                                    <button class="btn btn-call" data-phone="2125559012">
+                                        <i class="fas fa-phone"></i> Call
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-full btn-secondary" id="refresh-hospitals">
+                            <i class="fas fa-sync-alt"></i> Refresh Hospitals
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating AI Assistant -->
+    <div class="ai-assistant">
+        <div class="ai-fab" id="ai-fab">
+            <i class="fas fa-brain"></i>
+        </div>
+        <div class="ai-chat-window" id="ai-chat-window">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <i class="fas fa-robot"></i>
+                    <span>NephroGuard AI</span>
+                </div>
+                <button class="chat-close" id="chat-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message ai-message">
+                    <div class="message-content">
+                        <p>Hello! I'm your AI kidney health assistant. How can I help you today?</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" placeholder="Ask about kidney health..." id="chat-input-field">
+                <button class="send-btn" id="send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-circle"></div>
+            <p>Analyzing clinical data...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
