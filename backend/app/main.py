@@ -1,6 +1,7 @@
 import os
 import joblib
 import pandas as pd
+import requests
 from fastapi import FastAPI, Response
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,9 +17,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # =========================
 app = FastAPI(title="CKD Prediction + AI Chat API")
 
-# -------------------------
-# CORS
-# -------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # restrict in production
@@ -37,39 +35,41 @@ FEATURE_COLUMNS = [
 ]
 
 # =========================
+# HELPER FUNCTION TO DOWNLOAD FILES
+# =========================
+def download_file(url, local_path):
+    """Download a file from a URL to local path."""
+    if not os.path.exists(local_path):
+        response = requests.get(url)
+        response.raise_for_status()
+        with open(local_path, "wb") as f:
+            f.write(response.content)
+
+# =========================
 # LOAD MODEL & SCALER
 # =========================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = "/tmp/models"  # Serverless temporary directory
+os.makedirs(MODEL_DIR, exist_ok=True)
 
-# Try app/models first, then backend/models
-MODEL_DIRS = [
-    os.path.join(BASE_DIR, "models"),            # backend/app/models
-    os.path.abspath(os.path.join(BASE_DIR, "..", "models")),  # backend/models
-]
+# Replace these URLs with your actual GitHub raw file URLs
+MODEL_URL = "https://raw.githubusercontent.com/beebi-k/CKD_Analytics/main/models/random_forest.pkl"
+SCALER_URL = "https://raw.githubusercontent.com/beebi-k/CKD_Analytics/main/models/scaler.pkl"
 
-model = scaler = None
-for dir_path in MODEL_DIRS:
-    try:
-        model = joblib.load(os.path.join(dir_path, "random_forest.pkl"))
-        scaler = joblib.load(os.path.join(dir_path, "scaler.pkl"))
-        print(f"Models loaded from: {dir_path}")
-        break
-    except FileNotFoundError:
-        continue
+MODEL_PATH = os.path.join(MODEL_DIR, "random_forest.pkl")
+SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
 
-if model is None or scaler is None:
-    raise FileNotFoundError(
-        f"Could not find 'random_forest.pkl' and/or 'scaler.pkl' in any of: {MODEL_DIRS}"
-    )
+download_file(MODEL_URL, MODEL_PATH)
+download_file(SCALER_URL, SCALER_PATH)
+
+model = joblib.load(MODEL_PATH)
+scaler = joblib.load(SCALER_PATH)
+
+print(f"Models loaded from temporary directory: {MODEL_DIR}")
 
 # =========================
 # HELPER FUNCTIONS
 # =========================
 def get_shap_values(df):
-    """
-    Return top 3 most important features for the prediction.
-    Placeholder: uses model.feature_importances_.
-    """
     feature_importance = model.feature_importances_
     top_indices = sorted(range(len(feature_importance)), key=lambda i: feature_importance[i], reverse=True)[:3]
     return [FEATURE_COLUMNS[i] for i in top_indices]
@@ -117,9 +117,6 @@ def home():
 async def favicon():
     return Response(status_code=204)
 
-# -------------------------
-# CKD PREDICTION
-# -------------------------
 @app.post("/predict")
 def predict(data: CKDInput):
     df = pd.DataFrame([data.dict()])[FEATURE_COLUMNS]
@@ -137,9 +134,6 @@ def predict(data: CKDInput):
         "top_features": shap_info
     }
 
-# -------------------------
-# AI CHAT
-# -------------------------
 @app.post("/chat")
 def chat(input: ChatInput):
     response = openai.ChatCompletion.create(
