@@ -4,16 +4,12 @@ import pandas as pd
 from fastapi import FastAPI, Response
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.explain import get_shap_values
-
-
-
 import openai
 
 # =========================
 # CONFIG
 # =========================
-openai.api_key = "YOUR_OPENAI_API_KEY"  # Replace with your real OpenAI key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # =========================
 # FASTAPI APP INIT
@@ -25,26 +21,58 @@ app = FastAPI(title="CKD Prediction + AI Chat API")
 # -------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # replace "*" with your frontend domain in production
+    allow_origins=["*"],  # restrict in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # =========================
-# LOAD MODEL & SCALER
+# FEATURE COLUMNS
 # =========================
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-MODEL_DIR = os.path.join(BASE_DIR, "models")
-
-model = joblib.load(os.path.join(MODEL_DIR, "random_forest.pkl"))
-scaler = joblib.load(os.path.join(MODEL_DIR, "scaler.pkl"))
-
 FEATURE_COLUMNS = [
     "age", "bp", "sg", "al", "su", "rbc", "pc", "pcc", "ba",
     "bgr", "bu", "sc", "sod", "pot", "hemo", "pcv", "wc", "rc",
     "htn", "dm", "cad", "appet", "pe", "ane"
 ]
+
+# =========================
+# LOAD MODEL & SCALER
+# =========================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Try app/models first, then backend/models
+MODEL_DIRS = [
+    os.path.join(BASE_DIR, "models"),            # backend/app/models
+    os.path.abspath(os.path.join(BASE_DIR, "..", "models")),  # backend/models
+]
+
+model = scaler = None
+for dir_path in MODEL_DIRS:
+    try:
+        model = joblib.load(os.path.join(dir_path, "random_forest.pkl"))
+        scaler = joblib.load(os.path.join(dir_path, "scaler.pkl"))
+        print(f"Models loaded from: {dir_path}")
+        break
+    except FileNotFoundError:
+        continue
+
+if model is None or scaler is None:
+    raise FileNotFoundError(
+        f"Could not find 'random_forest.pkl' and/or 'scaler.pkl' in any of: {MODEL_DIRS}"
+    )
+
+# =========================
+# HELPER FUNCTIONS
+# =========================
+def get_shap_values(df):
+    """
+    Return top 3 most important features for the prediction.
+    Placeholder: uses model.feature_importances_.
+    """
+    feature_importance = model.feature_importances_
+    top_indices = sorted(range(len(feature_importance)), key=lambda i: feature_importance[i], reverse=True)[:3]
+    return [FEATURE_COLUMNS[i] for i in top_indices]
 
 # =========================
 # INPUT SCHEMAS
@@ -118,12 +146,4 @@ def chat(input: ChatInput):
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": input.message}]
     )
-    reply = response.choices[0].message.content
-    return {"reply": reply}
-
-# =========================
-# RUN SERVER
-# =========================
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("backend.app.main:app", host="127.0.0.1", port=8000, reload=True)
+    return {"reply": response.choices[0].message.content}
