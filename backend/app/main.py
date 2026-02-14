@@ -1,16 +1,15 @@
 import os
 import joblib
 import pandas as pd
-import requests
 from fastapi import FastAPI, Response
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
-import openai
+from openai import OpenAI
 
 # =========================
-# CONFIG
+# OPENAI CONFIG
 # =========================
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # =========================
 # FASTAPI APP INIT
@@ -35,43 +34,35 @@ FEATURE_COLUMNS = [
 ]
 
 # =========================
-# HELPER FUNCTION TO DOWNLOAD FILES
+# LOAD MODEL & SCALER (LOCAL)
 # =========================
-def download_file(url, local_path):
-    """Download a file from a URL to local path."""
-    if not os.path.exists(local_path):
-        response = requests.get(url)
-        response.raise_for_status()
-        with open(local_path, "wb") as f:
-            f.write(response.content)
-
-# =========================
-# LOAD MODEL & SCALER
-# =========================
-MODEL_DIR = "/tmp/models"  # Serverless temporary directory
-os.makedirs(MODEL_DIR, exist_ok=True)
-
-# Replace these URLs with your actual GitHub raw file URLs
-MODEL_URL = "https://raw.githubusercontent.com/beebi-k/CKD_Analytics/main/models/random_forest.pkl"
-SCALER_URL = "https://raw.githubusercontent.com/beebi-k/CKD_Analytics/main/models/scaler.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, "models")
 
 MODEL_PATH = os.path.join(MODEL_DIR, "random_forest.pkl")
 SCALER_PATH = os.path.join(MODEL_DIR, "scaler.pkl")
 
-download_file(MODEL_URL, MODEL_PATH)
-download_file(SCALER_URL, SCALER_PATH)
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError("❌ random_forest.pkl not found in app/models")
+
+if not os.path.exists(SCALER_PATH):
+    raise FileNotFoundError("❌ scaler.pkl not found in app/models")
 
 model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
-print(f"Models loaded from temporary directory: {MODEL_DIR}")
+print("✅ Model and scaler loaded successfully")
 
 # =========================
-# HELPER FUNCTIONS
+# HELPER FUNCTION
 # =========================
-def get_shap_values(df):
-    feature_importance = model.feature_importances_
-    top_indices = sorted(range(len(feature_importance)), key=lambda i: feature_importance[i], reverse=True)[:3]
+def get_top_features():
+    importances = model.feature_importances_
+    top_indices = sorted(
+        range(len(importances)),
+        key=lambda i: importances[i],
+        reverse=True
+    )[:3]
     return [FEATURE_COLUMNS[i] for i in top_indices]
 
 # =========================
@@ -122,22 +113,40 @@ def predict(data: CKDInput):
     df = pd.DataFrame([data.dict()])[FEATURE_COLUMNS]
     df_scaled = scaler.transform(df)
 
-    pred = model.predict(df_scaled)[0]
-    prob = model.predict_proba(df_scaled)[0][1]
-
-    shap_info = get_shap_values(df)
+    prediction = model.predict(df_scaled)[0]
+    probability = model.predict_proba(df_scaled)[0][1]
 
     return {
-        "prediction": "CKD Detected" if pred == 1 else "No CKD",
-        "probability": round(float(prob), 3),
-        "risk_level": "High" if prob > 0.7 else "Medium" if prob > 0.4 else "Low",
-        "top_features": shap_info
+        "prediction": "CKD Detected" if prediction == 1 else "No CKD",
+        "probability": round(float(probability), 3),
+        "risk_level": (
+            "High" if probability > 0.7
+            else "Medium" if probability > 0.4
+            else "Low"
+        ),
+        "top_features": get_top_features()
     }
 
 @app.post("/chat")
 def chat(input: ChatInput):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": input.message}]
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful medical assistant. Do not provide diagnosis. Provide general information only."
+            },
+            {
+                "role": "user",
+                "content": input.message
+            }
+        ]
     )
     return {"reply": response.choices[0].message.content}
+
+# =========================
+# ENTRY POINT (OPTIONAL)
+# =========================
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
