@@ -1,3 +1,8 @@
+dir
+
+.\.venv\Scripts\Activate.ps1
+
+
 uvicorn app.main:app --reload
 
 output:  Uvicorn running on http://127.0.0.1:8000 
